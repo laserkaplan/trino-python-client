@@ -44,3 +44,16 @@ def test_offset(dialect):
     statement = select(table).offset(0)
     query = statement.compile(dialect=dialect)
     assert str(query) == 'SELECT "table".id, "table".name \nFROM "table"\nOFFSET :param_1'
+
+
+def test_multiple_catalogs(dialect):
+    system_table = Table(
+        'table',
+        MetaData(),
+        Column('id', Integer, primary_key=True),
+        schema='information_schema',
+        trino_catalog='system'
+    )
+    statement = select(system_table)
+    query = statement.compile(dialect=dialect)
+    assert str(query) == 'SELECT "system".information_schema."table".id \nFROM "system".information_schema."table"'

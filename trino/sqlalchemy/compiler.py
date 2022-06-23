@@ -10,6 +10,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from sqlalchemy.sql import compiler
+try:
+    from sqlalchemy.sql.expression import (
+        Alias,
+        CTE,
+        Subquery,
+    )
+except ImportError:
+    from sqlalchemy.sql.expression import Alias
+    CTE = type(None)
+    Subquery = type(None)
 
 # https://trino.io/docs/current/language/reserved.html
 RESERVED_WORDS = {
@@ -101,6 +111,38 @@ class TrinoSQLCompiler(compiler.SQLCompiler):
         if select._limit_clause is not None:
             text += "\nLIMIT " + self.process(select._limit_clause, **kw)
         return text
+
+    def visit_column(self, column, add_to_result_map=None, include_table=True, **kwargs):
+        sql = super(TrinoSQLCompiler, self).visit_column(
+            column, add_to_result_map, include_table, **kwargs
+        )
+        table = column.table
+        return self.__add_catalog(sql, table)
+
+    def visit_table(self, table, asfrom=False, iscrud=False, ashint=False,
+                    fromhints=None, use_schema=True, **kwargs):
+        sql = super(TrinoSQLCompiler, self).visit_table(
+            table, asfrom, iscrud, ashint, fromhints, use_schema, **kwargs
+        )
+        return self.__add_catalog(sql, table)
+
+    @staticmethod
+    def __add_catalog(sql, table):
+        if table is None:
+            return sql
+
+        if isinstance(table, (Alias, CTE, Subquery)):
+            return sql
+
+        if (
+                'trino' not in table.dialect_options
+                or 'catalog' not in table.dialect_options['trino']._non_defaults
+        ):
+            return sql
+
+        catalog = table.dialect_options['trino']._non_defaults['catalog']
+        sql = '"{catalog}".{sql}'.format(catalog=catalog, sql=sql)
+        return sql
 
 
 class TrinoDDLCompiler(compiler.DDLCompiler):
