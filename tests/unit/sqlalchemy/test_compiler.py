@@ -46,7 +46,7 @@ def test_offset(dialect):
     assert str(query) == 'SELECT "table".id, "table".name \nFROM "table"\nOFFSET :param_1'
 
 
-def test_multiple_catalogs(dialect):
+def test_catalogs_argument(dialect):
     system_table = Table(
         'table',
         MetaData(),
