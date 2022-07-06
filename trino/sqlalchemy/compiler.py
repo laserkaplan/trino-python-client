@@ -117,17 +117,17 @@ class TrinoSQLCompiler(compiler.SQLCompiler):
             column, add_to_result_map, include_table, **kwargs
         )
         table = column.table
-        return self.__add_catalog(sql, table)
+        return self.add_catalog(sql, table)
 
     def visit_table(self, table, asfrom=False, iscrud=False, ashint=False,
                     fromhints=None, use_schema=True, **kwargs):
         sql = super(TrinoSQLCompiler, self).visit_table(
             table, asfrom, iscrud, ashint, fromhints, use_schema, **kwargs
         )
-        return self.__add_catalog(sql, table)
+        return self.add_catalog(sql, table)
 
     @staticmethod
-    def __add_catalog(sql, table):
+    def add_catalog(sql, table):
         if table is None:
             return sql
 
@@ -215,3 +215,7 @@ class TrinoTypeCompiler(compiler.GenericTypeCompiler):
 
 class TrinoIdentifierPreparer(compiler.IdentifierPreparer):
     reserved_words = RESERVED_WORDS
+
+    def format_table(self, table, use_schema=True, name=None):
+        result = super(TrinoIdentifierPreparer, self).format_table(table, use_schema, name)
+        return TrinoSQLCompiler.add_catalog(result, table)

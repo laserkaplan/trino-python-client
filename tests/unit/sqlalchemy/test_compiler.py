@@ -19,6 +19,7 @@ from sqlalchemy import (
     String,
     Table,
 )
+from sqlalchemy.schema import CreateTable
 
 from trino.sqlalchemy.dialect import TrinoDialect
 
@@ -28,6 +29,13 @@ table = Table(
     metadata,
     Column('id', Integer, primary_key=True),
     Column('name', String),
+)
+system_table = Table(
+    'table',
+    metadata,
+    Column('id', Integer, primary_key=True),
+    schema='information_schema',
+    trino_catalog='system'
 )
 
 
@@ -55,16 +63,21 @@ def test_offset(dialect):
 
 
 def test_catalogs_argument(dialect):
-    system_table = Table(
-        'table',
-        MetaData(),
-        Column('id', Integer, primary_key=True),
-        schema='information_schema',
-        trino_catalog='system'
-    )
     statement = select(system_table)
     query = statement.compile(dialect=dialect)
     assert str(query) == 'SELECT "system".information_schema."table".id \nFROM "system".information_schema."table"'
+
+
+def test_catalogs_create_table(dialect):
+    statement = CreateTable(system_table)
+    query = statement.compile(dialect=dialect)
+    assert str(query) == \
+        '\n'\
+        'CREATE TABLE "system".information_schema."table" (\n'\
+        '\tid INTEGER NOT NULL, \n'\
+        '\tPRIMARY KEY (id)\n'\
+        ')\n'\
+        '\n'
 
 
 def test_cte_insert_order(dialect):
