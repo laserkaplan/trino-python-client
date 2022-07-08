@@ -189,6 +189,9 @@ class TrinoTypeCompiler(compiler.GenericTypeCompiler):
     def visit_DATETIME(self, type_, **kw):
         return self.visit_TIMESTAMP(type_, **kw)
 
+    def visit_JSON(self, type_, **kw):
+        return 'JSON'
+
     def visit_TIMESTAMP(self, type_, **kw):
         datatype = "TIMESTAMP"
         precision = getattr(type_, "precision", None)
